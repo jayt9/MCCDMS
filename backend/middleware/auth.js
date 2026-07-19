@@ -42,6 +42,7 @@ async function authMiddleware(req, res, next) {
     .single();
 
   if (profileError || !profile) {
+    console.error('[authMiddleware] profile lookup failed for user', user.id, profileError);
     return res.status(403).json({
       error: 'No user profile found. Contact an admin to set up your account.'
     });
