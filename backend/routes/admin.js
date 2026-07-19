@@ -51,7 +51,9 @@ router.post('/users', async (req, res) => {
   }
 
   // 1. Create the auth user and send invite email
-  const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(email);
+  const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(email, {
+    redirectTo: process.env.FRONTEND_URL,
+  });
 
   if (authError) {
     return res.status(500).json({ error: `Failed to invite user: ${authError.message}` });
