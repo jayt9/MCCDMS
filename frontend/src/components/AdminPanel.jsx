@@ -10,7 +10,7 @@ export default function AdminPanel({ notify }) {
   const [displayName, setDisplayName] = useState("");
   const [role, setRole] = useState(ROLES[1]);
   const [loading, setLoading] = useState(false);
-  const [lastInviteLink, setLastInviteLink] = useState(null);
+  const [lastCreated, setLastCreated] = useState(null);
 
   function refresh() {
     listUsers().then(setUsers).catch((err) => notify(err.message, "error"));
@@ -23,10 +23,10 @@ export default function AdminPanel({ notify }) {
     if (!email.trim() || !displayName.trim()) return;
     setLoading(true);
     try {
-      const { user, inviteLink } = await inviteUser({ email: email.trim(), display_name: displayName.trim(), role });
+      const { user, tempPassword } = await inviteUser({ email: email.trim(), display_name: displayName.trim(), role });
       setUsers((prev) => [user, ...prev]);
-      setLastInviteLink({ email: email.trim(), link: inviteLink });
-      notify(`Invite link generated for ${email.trim()}.`);
+      setLastCreated({ email: email.trim(), tempPassword });
+      notify(`Account created for ${email.trim()}.`);
       setEmail("");
       setDisplayName("");
     } catch (err) {
@@ -59,8 +59,8 @@ export default function AdminPanel({ notify }) {
   return (
     <>
       <form className="record-card" onSubmit={handleInvite}>
-        <span className="record-tab staff">Invite</span>
-        <h3>Invite a user</h3>
+        <span className="record-tab staff">New user</span>
+        <h3>Create a user</h3>
 
         <div className="field">
           <label htmlFor="a_email">Email</label>
@@ -91,31 +91,39 @@ export default function AdminPanel({ notify }) {
         </div>
 
         <button className="submit-btn" type="submit" disabled={loading}>
-          {loading ? "Sending…" : "Send invite"}
+          {loading ? "Creating…" : "Create user"}
         </button>
       </form>
 
-      {lastInviteLink && (
+      {lastCreated && (
         <div className="record-card invite-link-card">
-          <span className="record-tab staff">Invite link</span>
-          <h3>Send this to {lastInviteLink.email}</h3>
+          <span className="record-tab staff">Credentials</span>
+          <h3>Send these to {lastCreated.email}</h3>
           <p className="hint">
-            This link isn't emailed automatically — copy it and share it with
-            them directly (Slack, WhatsApp, etc). It lets them set a password
-            and sign in.
+            Share this email + temporary password directly (text, WhatsApp,
+            in person) — they can sign in with it right away using the normal
+            login screen. Not a link, so nothing can consume it before they
+            use it.
           </p>
           <div className="field">
-            <input readOnly value={lastInviteLink.link} onFocus={(e) => e.target.select()} />
+            <label>Email</label>
+            <input readOnly value={lastCreated.email} onFocus={(e) => e.target.select()} />
+          </div>
+          <div className="field">
+            <label>Temporary password</label>
+            <input readOnly value={lastCreated.tempPassword} onFocus={(e) => e.target.select()} />
           </div>
           <button
             type="button"
             className="submit-btn"
             onClick={() => {
-              navigator.clipboard.writeText(lastInviteLink.link);
+              navigator.clipboard.writeText(
+                `Email: ${lastCreated.email}\nPassword: ${lastCreated.tempPassword}`
+              );
               notify("Copied to clipboard.");
             }}
           >
-            Copy link
+            Copy email + password
           </button>
         </div>
       )}

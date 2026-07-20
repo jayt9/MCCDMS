@@ -30,8 +30,23 @@ router.get('/users', async (req, res) => {
 });
 
 // ─── POST /admin/users ───────────────────────────────────────
-// Creates a Supabase auth user (sends invite email) and a
+// Creates a Supabase auth user with a temporary password and a
 // user_profile row with the assigned role.
+//
+// Deliberately not using invite/magic links here: they're
+// single-use, and link-preview rendering in SMS/iMessage can
+// silently consume the token before the recipient ever taps it
+// (iOS renders previews in an on-device webview that executes
+// the page's JS). A temp password is plain text — nothing can
+// "click" it early — so it's delivered out-of-band by the admin
+// and used with the normal sign-in form.
+
+function generateTempPassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  let out = '';
+  for (let i = 0; i < 12; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  return out;
+}
 
 router.post('/users', async (req, res) => {
   const { email, display_name, role } = req.body;
@@ -50,22 +65,21 @@ router.post('/users', async (req, res) => {
     });
   }
 
-  // 1. Create the auth user and generate an invite link.
-  // generateLink (unlike inviteUserByEmail) doesn't send an email itself,
-  // so it isn't subject to Supabase's email rate limit — the link is
-  // returned in the response for the admin to deliver manually.
-  const { data: authData, error: authError } = await supabase.auth.admin.generateLink({
-    type: 'invite',
+  const tempPassword = generateTempPassword();
+
+  // 1. Create the auth user with the temp password, pre-confirmed
+  // so they can log in immediately without an email confirmation step.
+  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
     email,
-    options: { redirectTo: process.env.FRONTEND_URL },
+    password: tempPassword,
+    email_confirm: true,
   });
 
   if (authError) {
-    return res.status(500).json({ error: `Failed to invite user: ${authError.message}` });
+    return res.status(500).json({ error: `Failed to create user: ${authError.message}` });
   }
 
   const newUserId = authData.user.id;
-  const inviteLink = authData.properties.action_link;
 
   // 2. Create their profile with assigned role
   const { data: profile, error: profileError } = await supabase
@@ -85,8 +99,8 @@ router.post('/users', async (req, res) => {
   }
 
   res.status(201).json({
-    message: `Invite link generated for ${email}`,
-    inviteLink,
+    message: `User created for ${email}`,
+    tempPassword,
     user: profile,
   });
 });
