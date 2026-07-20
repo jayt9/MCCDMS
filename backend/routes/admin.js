@@ -50,9 +50,14 @@ router.post('/users', async (req, res) => {
     });
   }
 
-  // 1. Create the auth user and send invite email
-  const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(email, {
-    redirectTo: process.env.FRONTEND_URL,
+  // 1. Create the auth user and generate an invite link.
+  // generateLink (unlike inviteUserByEmail) doesn't send an email itself,
+  // so it isn't subject to Supabase's email rate limit — the link is
+  // returned in the response for the admin to deliver manually.
+  const { data: authData, error: authError } = await supabase.auth.admin.generateLink({
+    type: 'invite',
+    email,
+    options: { redirectTo: process.env.FRONTEND_URL },
   });
 
   if (authError) {
@@ -60,6 +65,7 @@ router.post('/users', async (req, res) => {
   }
 
   const newUserId = authData.user.id;
+  const inviteLink = authData.properties.action_link;
 
   // 2. Create their profile with assigned role
   const { data: profile, error: profileError } = await supabase
@@ -79,7 +85,8 @@ router.post('/users', async (req, res) => {
   }
 
   res.status(201).json({
-    message: `Invite sent to ${email}`,
+    message: `Invite link generated for ${email}`,
+    inviteLink,
     user: profile,
   });
 });

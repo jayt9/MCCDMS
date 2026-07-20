@@ -10,6 +10,7 @@ export default function AdminPanel({ notify }) {
   const [displayName, setDisplayName] = useState("");
   const [role, setRole] = useState(ROLES[1]);
   const [loading, setLoading] = useState(false);
+  const [lastInviteLink, setLastInviteLink] = useState(null);
 
   function refresh() {
     listUsers().then(setUsers).catch((err) => notify(err.message, "error"));
@@ -22,9 +23,10 @@ export default function AdminPanel({ notify }) {
     if (!email.trim() || !displayName.trim()) return;
     setLoading(true);
     try {
-      const { user } = await inviteUser({ email: email.trim(), display_name: displayName.trim(), role });
+      const { user, inviteLink } = await inviteUser({ email: email.trim(), display_name: displayName.trim(), role });
       setUsers((prev) => [user, ...prev]);
-      notify(`Invite sent to ${email.trim()}.`);
+      setLastInviteLink({ email: email.trim(), link: inviteLink });
+      notify(`Invite link generated for ${email.trim()}.`);
       setEmail("");
       setDisplayName("");
     } catch (err) {
@@ -92,6 +94,31 @@ export default function AdminPanel({ notify }) {
           {loading ? "Sending…" : "Send invite"}
         </button>
       </form>
+
+      {lastInviteLink && (
+        <div className="record-card invite-link-card">
+          <span className="record-tab staff">Invite link</span>
+          <h3>Send this to {lastInviteLink.email}</h3>
+          <p className="hint">
+            This link isn't emailed automatically — copy it and share it with
+            them directly (Slack, WhatsApp, etc). It lets them set a password
+            and sign in.
+          </p>
+          <div className="field">
+            <input readOnly value={lastInviteLink.link} onFocus={(e) => e.target.select()} />
+          </div>
+          <button
+            type="button"
+            className="submit-btn"
+            onClick={() => {
+              navigator.clipboard.writeText(lastInviteLink.link);
+              notify("Copied to clipboard.");
+            }}
+          >
+            Copy link
+          </button>
+        </div>
+      )}
 
       <div className="roster-list">
         <h4>Users</h4>
