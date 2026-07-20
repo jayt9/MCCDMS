@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "./supabaseClient";
 import Sidebar from "./components/Sidebar.jsx";
 import SignIn from "./components/SignIn.jsx";
+import SetPassword from "./components/SetPassword.jsx";
 import FamilyForm from "./components/FamilyForm.jsx";
 import ChildForm from "./components/ChildForm.jsx";
 import AdminPanel from "./components/AdminPanel.jsx";
@@ -16,6 +17,10 @@ const TAB_META = {
 
 export default function App() {
   const [session, setSession] = useState(null);
+  const [needsPassword, setNeedsPassword] = useState(() => {
+    const hashType = new URLSearchParams(window.location.hash.slice(1)).get("type");
+    return hashType === "invite" || hashType === "recovery";
+  });
   const [profile, setProfile] = useState(null);
   const [profileError, setProfileError] = useState(null);
   const [activeTab, setActiveTab] = useState("families");
@@ -96,6 +101,21 @@ export default function App() {
     return (
       <>
         <SignIn notify={notify} />
+        <Toast message={toast.message} type={toast.type} />
+      </>
+    );
+  }
+
+  if (needsPassword) {
+    return (
+      <>
+        <SetPassword
+          notify={notify}
+          onDone={() => {
+            window.history.replaceState(null, "", window.location.pathname);
+            setNeedsPassword(false);
+          }}
+        />
         <Toast message={toast.message} type={toast.type} />
       </>
     );
