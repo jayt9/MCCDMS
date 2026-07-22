@@ -85,11 +85,12 @@ router.post('/users', async (req, res) => {
   const { data: profile, error: profileError } = await supabase
     .from('user_profiles')
     .insert({
-      id:           newUserId,
+      id:                   newUserId,
       display_name,
       role,
-      is_active:    true,
-      created_by:   req.user.id,
+      is_active:            true,
+      must_change_password: true,
+      created_by:           req.user.id,
     })
     .select()
     .single();

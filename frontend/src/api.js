@@ -48,3 +48,6 @@ export const listUsers = () => get("/admin/users");
 export const inviteUser = (data) => post("/admin/users", data);
 export const setUserRole = (id, role) => put(`/admin/users/${id}/role`, { role });
 export const deactivateUser = (id) => put(`/admin/users/${id}/deactivate`, {});
+
+// ─── Me ────────────────────────────────────────────────────
+export const markPasswordChanged = () => put("/me/password-changed", {});

@@ -7,7 +7,7 @@ import FamilyForm from "./components/FamilyForm.jsx";
 import ChildForm from "./components/ChildForm.jsx";
 import AdminPanel from "./components/AdminPanel.jsx";
 import Toast from "./components/Toast.jsx";
-import { listFamilies, listChildren } from "./api";
+import { listFamilies, listChildren, markPasswordChanged } from "./api";
 
 const TAB_META = {
   families: { eyebrow: "Directory", title: "Guardian Families", blurb: "Every household unit. Every child must belong to one of these." },
@@ -52,7 +52,7 @@ export default function App() {
     let cancelled = false;
     supabase
       .from("user_profiles")
-      .select("display_name, role, is_active")
+      .select("display_name, role, is_active, must_change_password")
       .eq("id", session.user.id)
       .single()
       .then(({ data, error }) => {
@@ -138,6 +138,21 @@ export default function App() {
 
   if (!profile) {
     return null;
+  }
+
+  if (profile.must_change_password) {
+    return (
+      <>
+        <SetPassword
+          notify={notify}
+          onDone={() => {
+            markPasswordChanged().catch((err) => notify(err.message, "error"));
+            setProfile((prev) => ({ ...prev, must_change_password: false }));
+          }}
+        />
+        <Toast message={toast.message} type={toast.type} />
+      </>
+    );
   }
 
   const canWrite = profile.role === "admin" || profile.role === "mcc_staff";

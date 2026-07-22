@@ -13,6 +13,7 @@ const { authMiddleware, requireRole } = require('./middleware/auth');
 const familiesRouter = require('./routes/families');
 const childrenRouter = require('./routes/children');
 const adminRouter    = require('./routes/admin');
+const meRouter       = require('./routes/me');
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/families', authMiddleware, familiesRouter);
 app.use('/children', authMiddleware, childrenRouter);
 app.use('/admin',    authMiddleware, requireRole('admin'), adminRouter);
+app.use('/me',       authMiddleware, meRouter);
 
 // ─── 404 + global error handler ──────────────────────────────
 
