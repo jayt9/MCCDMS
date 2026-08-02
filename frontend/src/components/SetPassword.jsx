@@ -6,6 +6,8 @@ export default function SetPassword({ onDone, notify }) {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (password.length < 8) {
@@ -23,6 +25,7 @@ export default function SetPassword({ onDone, notify }) {
       notify("Password set. Welcome aboard.");
       onDone();
     } catch (err) {
+      console.error("[updateUser]", err);
       notify(err.message, "error");
     } finally {
       setLoading(false);

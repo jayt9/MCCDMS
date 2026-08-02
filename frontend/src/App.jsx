@@ -75,7 +75,13 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [session]);
+    // Deliberately keyed on the user id, not the whole session object.
+    // Supabase reissues a new session object (same user) on events like
+    // USER_UPDATED (e.g. after a password change) — refetching the profile
+    // every time that happens raced against markPasswordChanged() and
+    // overwrote the optimistic must_change_password:false with stale data
+    // still in the DB.
+  }, [session?.user?.id]);
 
   const loadFamilies = useCallback(() => {
     listFamilies().then(setFamilies).catch((err) => notify(err.message, "error"));
@@ -145,9 +151,14 @@ export default function App() {
       <>
         <SetPassword
           notify={notify}
-          onDone={() => {
-            markPasswordChanged().catch((err) => notify(err.message, "error"));
-            setProfile((prev) => ({ ...prev, must_change_password: false }));
+          onDone={async () => {
+            try {
+              await markPasswordChanged();
+              setProfile((prev) => ({ ...prev, must_change_password: false }));
+            } catch (err) {
+              console.error("[markPasswordChanged]", err);
+              notify(`Password changed, but failed to update your account: ${err.message}`, "error");
+            }
           }}
         />
         <Toast message={toast.message} type={toast.type} />
